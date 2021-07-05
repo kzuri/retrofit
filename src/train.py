@@ -52,6 +52,6 @@ this_data = Data(args.sentence_length)
 this_data.load(args.data_path)
 m_train = Trainer()
 m_train.build(args.data_path, args.options_file, args.weight_file, args.token_emb_file, m1 = args.margin, m2 = 0, a1 =args.lambda1, a2 = args.lambda2, a3 = args.lambda3, length=args.sentence_length, dim=args.dim, batch_sizeK=args.batch_size, save_path=args.model_sav_path, data_save_path=args.data_sav_path)
-m_train.train(epochs=args.epochs, save_every_epoch=args.save_freq, lr=args.lr, r1 =args.r1, restore=args.restore, restore_path=args.restore_path)
+m_train.train(epochs=args.epochs, save_every_epoch=args.save_freq, lr=args.lr, r1 =args.r1)#, restore=args.restore, restore_path=args.restore_path)
 
 
