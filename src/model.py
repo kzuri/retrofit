@@ -59,7 +59,7 @@ class TFParts(object):
             weights = np.zeros((embed_weights.shape[0] + 1, embed_weights.shape[1]), dtype='float32')
             weights[1:, :] = embed_weights
             print("model-load: weights")
-
+        
         tf.reset_default_graph()
         # with tf.variable_scope("graph"):
             # Variables (matrix of embeddings/transformations)

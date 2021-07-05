@@ -41,6 +41,7 @@ class Data(object):
         self.word2id = self.token_batcher._lm_vocab._word_to_id
         self.id2word = self.token_batcher._lm_vocab._id_to_word
         # 2. if synonym_file is not None, populate synonyms (two directions).
+        '''
         with open(synonym_file, "r") as f:
             for line in f:
                 line = line.strip().split("\t")
@@ -51,7 +52,7 @@ class Data(object):
                         continue
                     self.synonyms.setdefault(id0, set()).add(id1)
                     self.synonyms.setdefault(id1, set()).add(id0)
-
+        '''
         # 3. if stop_word_file is not None, populate stop_word_ids
         with open(stop_word_file, "r", encoding="utf-8") as f:
             for line in f:
@@ -318,16 +319,16 @@ class Data(object):
         print("Loaded data object from", filename)
         print("===============\nCaution: need to reload desc embeddings.\n=====================")
 
-
-vocab_file = "../bilm_tf/save/vocab-2016-09-10.txt"
-stopword_file = "../data/stop_words_en.txt"
-synonyms_file = "../data/synonyms.tsv"
+vocab_file = "./data/vocab-2016-09-10.txt"
+stopword_file = "./data/stopwords-en.txt"
+#synonyms_file = "../data/synonyms.tsv"
+#synonyms_file = None
 bad_words = ["-LSB-", "\\", "``", "-LRB-", "????", "n/a", "'"]
 
-# data_file = ["../data/driver"]
-# mrpc = Data(30, use_synonym = False)
-# data_type_list = ["quora"]
-# mrpc.build(vocab_file, stopword_file, synonyms_file)
-# mrpc.load_sentece_pairs(data_file,"mrpc", data_type_list)
-# mrpc.save("../data/driver-40-f.pk")
+data_file = ["./data/msrp_data.tsv"]
+mrpc = Data(30, use_synonym = False)
+data_type_list = ["quora"]
+mrpc.build(vocab_file, stopword_file)
+mrpc.load_sentece_pairs(data_file,"mrpc", data_type_list)
+mrpc.save("./data/driver-40-f.pk")
 

@@ -38,7 +38,7 @@ class Trainer(object):
     def build(self, data, options_file, weight_file, token_embedding_file, m1, m2, a1, a2, a3, length=20, dim=128, batch_sizeK=1024, save_path = 'this-model.ckpt', data_save_path = 'this-data.bin', M1_path = None):
         self.data = data
         self.dim = dim
-        self.length = self.data.length = length
+        self.length  = length
         self.batch_sizeK = batch_sizeK
         self.data_save_path = data_save_path
         self.save_path = save_path
