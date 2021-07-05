@@ -150,19 +150,19 @@ class TFParts(object):
 
         print("----")
         # run through bilm
-        sent1_emb_context = self._bilm(sent1, sent1_emb_transform)
+        sent1_emb_context = self._bilm(sent1)#, sent1_emb_transform)
         with tf.variable_scope('', reuse=True):
-            sent2_emb_context = self._bilm(sent2, sent2_emb_transform)
+            sent2_emb_context = self._bilm(sent2)#, sent2_emb_transform)
         # dim x 2
-        self.sent1_emb_context_output = sent1_emb_context_output = weight_layers('output1', sent1_emb_context, l2_coef=0.0)
-        # print("sent1_emb_context_output",sent1_emb_context_output)
+        self.sent1_emb_context_output = sent1_emb_context_output = weight_layers('output1', sent1_emb_context, l2_coef=0.0)['weighted_op']
+        #print("sent1_emb_context_output",sent1_emb_context_output)
         with tf.variable_scope('', reuse=True):
             self.sent2_emb_context_output = sent2_emb_context_output = weight_layers('output1', sent2_emb_context, l2_coef=0.0)['weighted_op']
         # print("sent2_emb_context_output",sent2_emb_context_output)
 
         with tf.variable_scope('', reuse=True):
-            nsent1_emb_context = self._bilm(nsent1, nsent1_emb_transform)
-            nsent2_emb_context = self._bilm(nsent2, nsent2_emb_transform)
+            nsent1_emb_context = self._bilm(nsent1)#, nsent1_emb_transform)
+            nsent2_emb_context = self._bilm(nsent2)#, nsent2_emb_transform)
         print("----")
         # self.nsent1_emb_context_output = nsent1_emb_context_output = weight_layers('output3', nsent1_emb_context, l2_coef=0.0)['weighted_op']
         # self.nsent2_emb_context_output = nsent2_emb_context_output = weight_layers('output4', nsent2_emb_context, l2_coef=0.0)['weighted_op']
