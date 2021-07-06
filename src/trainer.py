@@ -154,7 +154,6 @@ class Trainer(object):
                     # # for testing: no corrupt, all neg tuples:
                     # neg_tuple = random.choice(self.data.neg_tuples)
                     # neg_batch.append(neg_tuple)
-                    print(">>>",tup)
                     neg = neg_fun(self.dpkl,tup)
                     if (random.uniform(0, 1) < r1) and (neg is not None):
                         # append a given negative case, or if None, corrupt

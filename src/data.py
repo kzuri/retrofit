@@ -326,7 +326,7 @@ stopword_file = "./data/stopwords-en.txt"
 bad_words = ["-LSB-", "\\", "``", "-LRB-", "????", "n/a", "'"]
 
 data_file = ["./data/msrp_data.tsv"]
-mrpc = Data(30, use_synonym = False)
+mrpc = Data(40, use_synonym = False)
 data_type_list = ["quora"]
 mrpc.build(vocab_file, stopword_file)
 mrpc.load_sentece_pairs(data_file,"mrpc", data_type_list)
