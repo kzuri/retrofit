@@ -10,8 +10,8 @@ import time
 import random
 import pickle
 
-
-import data
+ 
+from data import Data
 import model as model
 import sys
 sys.path.append('../bilm_tf')
@@ -19,6 +19,80 @@ from bilm import BidirectionalLanguageModel, weight_layers
 import logging
 
 logger = logging.getLogger(__name__)
+
+def neg_fun(dpkl, para_tuple):
+        s1 = para_tuple[0]
+        s1_index = para_tuple[2]
+        s2 = para_tuple[1]
+        s2_index = para_tuple[3]
+        s1_token = dpkl['id2sent'][s1][s1_index]
+        s2_token = dpkl['id2sent'][s2][s2_index]
+        if((s1_token, s2_token) in dpkl['token_pair2neg_tuples']):
+            neg_tuple_id = random.choice(list(dpkl['token_pair2neg_tuples'][(s1_token, s2_token)]))
+            neg_tuple = dpkl['neg_tuples'][neg_tuple_id]
+            return neg_tuple
+        else:
+            return None
+
+def is_paraphrase(dpkl, sent_id1, sent_id2):
+        if((sent_id1,sent_id2) in dpkl['paraphrases']):
+            return True
+        else:
+            return False
+
+def corrupt(dpkl, para_tuple, tar=None):
+        # corrupt para tuple into a negative sample. Return (sent_id, sent_id, index_of_an_overlapping/synonym_token, index_of_an_overlapping/synonym_token) for a negative sample.
+        if tar == None:
+            tar = random.randint(0,1)
+        s1 = para_tuple[0]
+        s1_index = para_tuple[2]
+        s2 = para_tuple[1]
+        s2_index = para_tuple[3]
+
+        if(tar == 0):
+            token = dpkl['id2sent'][s1][s1_index]
+            sents_list = dpkl['token2sents'][token]
+
+            if ((s1, s1_index) in sents_list):
+                sents_list.remove((s1, s1_index))
+            if ((s2, s2_index) in sents_list):
+                sents_list.remove((s2, s2_index))
+            if (len(sents_list) == 0):
+                return random.choice(dpkl['neg_tuples'])
+            else:
+                corrupt_s = random.choice(list(sents_list))
+            ind = 0
+            while is_paraphrase(dpkl, corrupt_s[0], s1):
+                corrupt_s = random.choice(list(sents_list))
+                ind += 1
+                if ind > 10:
+                    # print("ind", ind)
+                    random.choice(dpkl['neg_tuples'])
+                    break
+            return (corrupt_s[0],s1,corrupt_s[1], s1_index)
+
+        if(tar == 1):
+            token = dpkl['id2sent'][s2][s2_index]
+            sents_list = dpkl['token2sents'][token]
+
+            if ((s1, s1_index) in sents_list):
+                sents_list.remove((s1, s1_index))
+            if ((s2, s2_index) in sents_list):
+                sents_list.remove((s2, s2_index))
+            if (len(sents_list) < 2):
+                return random.choice(dpkl['neg_tuples'])
+            else:
+                corrupt_s = random.choice(list(sents_list))
+            ind = 0
+            while is_paraphrase(dpkl,corrupt_s[0], s2):
+                corrupt_s = random.choice(list(sents_list))
+                ind += 1
+                if ind > 10:
+                    # print("ind", ind)
+                    random.choice(dpkl['neg_tuples'])
+                    break
+            c_tuple = (corrupt_s[0],s2,corrupt_s[1],s2_index)
+            return c_tuple
 
 class Trainer(object):
     def __init__(self):
@@ -35,8 +109,13 @@ class Trainer(object):
         self.r1 = 0.5
         self.sess = None
 
-    def build(self, data, options_file, weight_file, token_embedding_file, m1, m2, a1, a2, a3, length=20, dim=128, batch_sizeK=1024, save_path = 'this-model.ckpt', data_save_path = 'this-data.bin', M1_path = None):
-        self.data = data
+    def build(self, data1, options_file, weight_file, token_embedding_file, m1, m2, a1, a2, a3, length=20, dim=128, batch_sizeK=1024, save_path = 'this-model.ckpt', data_save_path = 'this-data.bin', M1_path = None):
+        self.data = Data
+        dpkl = pickle.load(open(data1,'rb'))
+        self.dpkl = dpkl
+        self.para_tuples = dpkl['para_tuples']
+  
+        print(self.data)
         self.dim = dim
         self.length  = length
         self.batch_sizeK = batch_sizeK
@@ -59,35 +138,37 @@ class Trainer(object):
 
     def gen_batch(self, r1, forever=False, shuffle=True):
         data = self.data
-        l = len(data.para_tuples)
+        l = len(self.para_tuples)
         while True:
-            para_tuples = data.para_tuples
+            para_tuples = self.para_tuples
             if shuffle:
                 np.random.shuffle(para_tuples)
             for i in range(0, l, self.batch_sizeK):
                 batch = para_tuples[i: i+self.batch_sizeK, :]
                 if batch.shape[0] < self.batch_sizeK:
-                    batch = np.concatenate((batch, self.data.para_tuples[:self.batch_sizeK - batch.shape[0]]), axis=0)
+                    batch = np.concatenate((batch, self.para_tuples[:self.batch_sizeK - batch.shape[0]]), axis=0)
                     assert batch.shape[0] == self.batch_sizeK
                 #get negative samples, or corrupt a batch of positive cases data.corrupt_batch(batch)
                 neg_batch = []
-                for tuple in batch:
+                for tup in batch:
                     # # for testing: no corrupt, all neg tuples:
                     # neg_tuple = random.choice(self.data.neg_tuples)
                     # neg_batch.append(neg_tuple)
-                    neg = data.neg(tuple)
+                    print(">>>",tup)
+                    neg = neg_fun(self.dpkl,tup)
                     if (random.uniform(0, 1) < r1) and (neg is not None):
                         # append a given negative case, or if None, corrupt
                         neg_batch.append(neg)
                     else:
                         # append a corrupted negative case
-                        neg_batch.append(data.corrupt(tuple))
+                        neg_batch.append(corrupt(self.dpkl,tup))
 
                 neg_batch = np.array(neg_batch)
-                sent1_batch = np.take(data.id2sent,batch[:,0], axis = 0)
-                sent2_batch = np.take(data.id2sent,batch[:,1], axis = 0)
-                nsent1_batch = np.take(data.id2sent,neg_batch[:,0], axis = 0)
-                nsent2_batch = np.take(data.id2sent,neg_batch[:,1], axis = 0)
+                id2sent = self.dpkl['id2sent']
+                sent1_batch = np.take(id2sent,batch[:,0], axis = 0)
+                sent2_batch = np.take(id2sent,batch[:,1], axis = 0)
+                nsent1_batch = np.take(id2sent,neg_batch[:,0], axis = 0)
+                nsent2_batch = np.take(id2sent,neg_batch[:,1], axis = 0)
                 token1_batch = batch[:,2]
                 token2_batch = batch[:,3]
                 ntoken1_batch = neg_batch[:,2]
@@ -166,7 +247,7 @@ class Trainer(object):
         for v in tf.trainable_variables():
             print(v)
         # 1/0
-        num_A_batch = int(len(self.data.para_tuples)/self.batch_sizeK) + 1
+        num_A_batch = int(len(self.para_tuples)/self.batch_sizeK) + 1
         # num_A_batch = len(list(self.gen_batch(r1)))
         # print(len(self.data.para_tuples), self.batch_sizeK)
         print('batch =', num_A_batch)
